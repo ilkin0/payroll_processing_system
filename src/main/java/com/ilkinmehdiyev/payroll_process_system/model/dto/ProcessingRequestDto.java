@@ -10,8 +10,16 @@ public record ProcessingRequestDto(
         String empFName,
         String empLName,
         String designation,
-        String event, // TODO refactor
-        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "ddMMyyyy") LocalDate eventDate,
+        String event,
+        String value,
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "dd-MM-yyyy") LocalDate eventDate,
         String notes
 ) {
+
+    /**
+     * A specific constructor for Event types other than ONBOARD.
+     */
+    public ProcessingRequestDto(String sequenceNo, String empId, String event, String value, LocalDate eventDate, String notes) {
+        this(sequenceNo, empId, null, null, null, event, value, eventDate, notes);
+    }
 }
