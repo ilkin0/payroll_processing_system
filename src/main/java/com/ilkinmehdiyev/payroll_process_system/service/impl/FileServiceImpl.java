@@ -14,18 +14,21 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Service
-public record FileServiceImpl(EventService eventService) implements FileService {
-
+@RequiredArgsConstructor
+public class FileServiceImpl implements FileService {
+    private final EventService eventService;
     public static final String COMMA_DELIMITER = ",";
+    public static final List<String> eventTypes = EventType.stringValues();
 
     @Override
-    public void parseFile(MultipartFile file) {
+    public void parseFile(MultipartFile file) throws FileParseException {
         InputStream inputStream;
         try {
             inputStream = file.getInputStream();
@@ -40,20 +43,21 @@ public record FileServiceImpl(EventService eventService) implements FileService 
             while ((line = bufferedReader.readLine()) != null) {
                 String[] values = line.split(COMMA_DELIMITER);
 
-                List<String> stringList = Stream.of(values)
-                        .map(String::strip)
-                        .collect(Collectors.toCollection(LinkedList::new));
-
-                List<String> eventTypes = EventType.stringValues();
-                eventTypes.forEach(type -> {
-                    if (stringList.contains(type)) {
-                        eventService.processEvent(EventType.of(type), stringList);
-                    }
-                });
+                processEvent(values);
             }
         } catch (IOException e) {
             log.error("Cannot read the file");
             throw new FileParseException("Cannot read the file");
         }
+    }
+
+    private void processEvent(String[] values) {
+        List<String> stringList = Stream.of(values)
+                .map(String::strip)
+                .collect(Collectors.toCollection(LinkedList::new));
+
+        eventTypes.stream()
+                .filter(stringList::contains)
+                .forEach(type -> eventService.processEvent(EventType.of(type), stringList));
     }
 }

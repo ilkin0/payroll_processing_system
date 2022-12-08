@@ -31,7 +31,13 @@ public record ProcessServiceImpl(FileService fileService) implements ProcessServ
         if (!isExtensionOk)
             throw new FileNotSupportedException("File type is not supported!");
 
-        fileService.parseFile(file);
+        try {
+            fileService.parseFile(file);
+            log.info("File {} has been proceed", originalFilename);
+        } catch (Exception e) {
+            log.error("Cannot process file: {}", originalFilename);
+            throw new IllegalStateException("Cannot process file");
+        }
 
         log.info("Total Joined Report: {}", totalJoined);
         log.info("Total Exit Report: {}", totalExit);

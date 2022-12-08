@@ -1,6 +1,10 @@
 package com.ilkinmehdiyev.payroll_process_system.service.impl;
 
 import com.ilkinmehdiyev.payroll_process_system.model.dto.ProcessingRequestDto;
+import com.ilkinmehdiyev.payroll_process_system.model.dto.report.EmployeeReportDto;
+import com.ilkinmehdiyev.payroll_process_system.model.dto.report.GeneralReportDto;
+import com.ilkinmehdiyev.payroll_process_system.model.dto.report.SalaryReportDto;
+import com.ilkinmehdiyev.payroll_process_system.model.dto.report.YearlyReportDto;
 import com.ilkinmehdiyev.payroll_process_system.model.enums.EventType;
 import com.ilkinmehdiyev.payroll_process_system.service.interfaces.EventService;
 
@@ -10,9 +14,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -23,10 +24,10 @@ public record EventServiceImpl() implements EventService {
     public static int totalEmployee;
     public static List<ProcessingRequestDto> totalJoined = new ArrayList<>();
     public static List<ProcessingRequestDto> totalExit = new ArrayList<>();
-    public static List<SalaryReport> salaryReport = new ArrayList<>();
-    public static List<GeneralReport> generalReport = new ArrayList<>();
-    public static List<YearlyReport> yearlyReport = new ArrayList<>();
-    public static List<EmployeeReport> employeeReport = new ArrayList<>();
+    public static List<SalaryReportDto> salaryReport = new ArrayList<>();
+    public static List<GeneralReportDto> generalReport = new ArrayList<>();
+    public static List<YearlyReportDto> yearlyReport = new ArrayList<>();
+    public static List<EmployeeReportDto> employeeReport = new ArrayList<>();
 
     @Override
     public void processEvent(EventType type, List<String> data) {
@@ -74,8 +75,8 @@ public record EventServiceImpl() implements EventService {
     }
 
     private static void updateSalaryReport(ProcessingRequestDto requestDto) {
-        Optional<SalaryReport> reportOptional = salaryReport.stream()
-                .filter(sr -> sr.month.equals(requestDto.eventDate().getMonth().toString()))
+        Optional<SalaryReportDto> reportOptional = salaryReport.stream()
+                .filter(sr -> sr.getMonth().equals(requestDto.eventDate().getMonth().toString()))
                 .findAny();
 
         reportOptional.ifPresentOrElse((report) -> {
@@ -85,7 +86,7 @@ public record EventServiceImpl() implements EventService {
             salaryReport.set(salaryReport.lastIndexOf(report), report);
             log.info("Salary report has been updated: {}", report);
         }, () -> {
-            SalaryReport newReport = new SalaryReport();
+            SalaryReportDto newReport = new SalaryReportDto();
             newReport.setMonth(requestDto.eventDate().getMonth().toString());
             newReport.setAmount(newReport.getAmount().add(new BigDecimal(requestDto.value())));
             newReport.setTotalEmployee(totalEmployee);
@@ -96,11 +97,11 @@ public record EventServiceImpl() implements EventService {
     }
 
     private static void updateGeneralReport(ProcessingRequestDto requestDto) {
-        Optional<GeneralReport> generalReportOptional = generalReport.stream()
-                .filter(sr -> sr.month.equals(requestDto.eventDate().getMonth().toString()))
+        Optional<GeneralReportDto> generalReportOptional = generalReport.stream()
+                .filter(sr -> sr.getMonth().equals(requestDto.eventDate().getMonth().toString()))
                 .findAny();
 
-        GeneralReport report = generalReportOptional.orElseGet(GeneralReport::new);
+        GeneralReportDto report = generalReportOptional.orElseGet(GeneralReportDto::new);
         report.setMonth(requestDto.eventDate().getMonth().toString());
         report.setTotalAmount(report.getTotalAmount().add(new BigDecimal(requestDto.value())));
         report.setTotalEmployee(totalEmployee);
@@ -110,15 +111,15 @@ public record EventServiceImpl() implements EventService {
     }
 
     private static void updateYearlyReport(EventType type, ProcessingRequestDto requestDto) {
-        YearlyReport report = new YearlyReport(type, requestDto.empId(), requestDto.eventDate(), requestDto.value());
+        YearlyReportDto report = new YearlyReportDto(type, requestDto.empId(), requestDto.eventDate(), requestDto.value());
 
         yearlyReport.add(report);
         log.info("New General report has been added: {}", report);
     }
 
     private static void updateEmployeeReport(ProcessingRequestDto requestDto) {
-        Optional<EmployeeReport> employeeReportOptional = employeeReport.stream()
-                .filter(e -> e.empId.equals(requestDto.empId()))
+        Optional<EmployeeReportDto> employeeReportOptional = employeeReport.stream()
+                .filter(e -> e.getEmpId().equals(requestDto.empId()))
                 .findAny();
 
         employeeReportOptional.ifPresentOrElse((eReport) -> {
@@ -127,7 +128,7 @@ public record EventServiceImpl() implements EventService {
             employeeReport.set(employeeReport.lastIndexOf(eReport), eReport);
             log.info("Employee report has been updated: {}", eReport);
         }, () -> {
-            EmployeeReport report = new EmployeeReport();
+            EmployeeReportDto report = new EmployeeReportDto();
             report.setEmpId(requestDto.empId());
             report.setLastName(requestDto.empLName());
             report.setFirstName(requestDto.empFName());
@@ -136,36 +137,5 @@ public record EventServiceImpl() implements EventService {
             employeeReport.add(report);
             log.info("New Employee report has been added: {}", report);
         });
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    public static class SalaryReport {
-        private String month;
-        private BigDecimal amount = BigDecimal.ZERO;
-        private int totalEmployee;
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    public static class GeneralReport {
-        private String month;
-        private BigDecimal totalAmount = BigDecimal.ZERO;
-        private int totalEmployee;
-    }
-
-    public record YearlyReport(EventType eventType, String empId, LocalDate eventDate, String eventValue) {
-    }
-
-    @Getter
-    @Setter
-    @ToString
-    public static class EmployeeReport {
-        private String empId;
-        private String firstName;
-        private String lastName;
-        private BigDecimal totalAmount = BigDecimal.ZERO;
     }
 }
